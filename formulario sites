@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Registro de Asistencia</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+        }
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        #formularioContainer {
+            display: none;
+            margin-top: 20px;
+        }
+        #mensajeFueraDeRango {
+            color: red;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        #loading {
+            display: block;
+            margin: 20px auto;
+            width: 50px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Registro de Asistencia</h1>
+    <img id="loading" src="https://upload.wikimedia.org/wikipedia/commons/b/b1/Loading_icon.gif" alt="Cargando...">
+    <div id="formularioContainer">
+        <iframe id="formularioIframe" src="" width="640" height="2524" frameborder="0" marginheight="0" marginwidth="0">Cargando…</iframe>
+    </div>
+    <div id="mensajeFueraDeRango">
+        No se puede registrar la asistencia desde esta ubicación o fuera del horario permitido.
+    </div>
+</div>
+
+<script>
+    const latitudPermitida = -36.88718467655381;
+    const longitudPermitida = -60.305089104327486;
+    const radioPermitido = 100; // en metros
+
+    const ID_LATITUD = 'entry.396331727';
+    const ID_LONGITUD = 'entry.1991218749';
+    const FORM_BASE = 'https://docs.google.com/forms/d/e/1FAIpQLScSq-OUKHfVA6O60L3dMzACNGpleZDM9_3Gk-kAfV8YHqzRWg/viewform?usp=pp_url';
+
+    function calcularDistancia(lat1, lon1, lat2, lon2) {
+        const R = 6371; // km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c * 1000; // metros
+    }
+
+    function estaEnHorarioValido() {
+        const ahora = new Date();
+        const dia = ahora.getDay(); // 0 = domingo, 1 = lunes, ..., 6 = sábado
+        const hora = ahora.getHours();
+
+        return dia >= 1 && dia <= 5 && hora >= 12 && hora < 18;
+    }
+
+    window.onload = function () {
+        const formularioContainer = document.getElementById("formularioContainer");
+        const mensajeFueraDeRango = document.getElementById("mensajeFueraDeRango");
+        const loadingIndicator = document.getElementById("loading");
+        const formularioIframe = document.getElementById("formularioIframe");
+
+        if (!estaEnHorarioValido()) {
+            loadingIndicator.style.display = "none";
+            mensajeFueraDeRango.textContent = "El registro solo está habilitado de lunes a viernes entre las 12:00 y las 18:00.";
+            mensajeFueraDeRango.style.display = "block";
+            return;
+        }
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function (position) {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    const distancia = calcularDistancia(latitudPermitida, longitudPermitida, lat, lon);
+
+                    loadingIndicator.style.display = "none";
+
+                    if (distancia <= radioPermitido) {
+                        const urlConDatos = `${FORM_BASE}&${ID_LATITUD}=${lat}&${ID_LONGITUD}=${lon}`;
+                        formularioIframe.src = urlConDatos;
+                        formularioContainer.style.display = "block";
+                        mensajeFueraDeRango.style.display = "none";
+                    } else {
+                        mensajeFueraDeRango.textContent = "Estás fuera del radio permitido para registrar tu asistencia.";
+                        mensajeFueraDeRango.style.display = "block";
+                        formularioContainer.style.display = "none";
+                    }
+                },
+                function (error) {
+                    loadingIndicator.style.display = "none";
+                    mensajeFueraDeRango.textContent = "Error al obtener la ubicación. Por favor, activá el GPS y otorgá permisos de ubicación.";
+                    mensajeFueraDeRango.style.display = "block";
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        } else {
+            loadingIndicator.style.display = "none";
+            mensajeFueraDeRango.textContent = "Tu navegador no soporta geolocalización.";
+            mensajeFueraDeRango.style.display = "block";
+        }
+    };
+</script>
+</body>
+</html>
