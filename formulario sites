@@ -83,7 +83,7 @@
 
         if (!estaEnHorarioValido()) {
             loadingIndicator.style.display = "none";
-            mensajeFueraDeRango.textContent = "El registro solo está habilitado de lunes a viernes entre las 12:00 y las 18:00.";
+            mensajeFueraDeRango.textContent = "El registro solo está habilitado de lunes a viernes entre las 12:00 y las 19:00.";
             mensajeFueraDeRango.style.display = "block";
             return;
         }
